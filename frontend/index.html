@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f7f2">
+  <title>Tic Tac Toe</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="server-api.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="wordmark" href="#" aria-label="Tic Tac Toe home">
+        <span class="wordmark-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <span>PLAYROOM <b>/</b> 01</span>
+      </a>
+      <span class="edition">A TWO-PLAYER CLASSIC</span>
+    </header>
+
+    <main class="game-layout">
+      <section class="intro" aria-labelledby="game-title">
+        <p class="eyebrow"><span></span> YOUR MOVE, YOUR MOMENT</p>
+        <h1 id="game-title">Tic Tac Toe<span>.</span></h1>
+        <p class="intro-copy">A little strategy goes a long way.</p>
+      </section>
+
+      <section class="game-panel" aria-label="Tic tac toe game">
+        <div class="game-toolbar">
+          <div class="players" aria-label="Players">
+            <label class="player player-x" for="player-x">
+              <span class="player-symbol" aria-hidden="true">X</span>
+              <span class="player-details"><span class="player-marker">PLAYER 01</span><input id="player-x" maxlength="20" value="Alice" aria-label="Player X name"></span>
+            </label>
+            <span class="versus" aria-hidden="true">VS</span>
+            <label class="player player-o" for="player-o">
+              <span class="player-symbol" aria-hidden="true">O</span>
+              <span class="player-details"><span class="player-marker">PLAYER 02</span><input id="player-o" maxlength="20" value="Bob" aria-label="Player O name"></span>
+            </label>
+          </div>
+          <div class="turn-indicator" id="turn-indicator" aria-live="polite">
+            <span class="turn-dot" aria-hidden="true"></span>
+            <span id="turn-text">Alice's turn</span>
+            <strong id="turn-symbol" aria-hidden="true">X</strong>
+          </div>
+        </div>
+
+        <div class="connection-panel" aria-label="Game connection">
+          <div class="connection-actions">
+            <button class="create-game-button" id="create-game-button" type="button">Create game</button>
+            <label class="join-game-control" for="join-code-input">
+              <input id="join-code-input" maxlength="8" placeholder="GAME CODE" aria-label="Game code">
+              <button class="join-game-button" id="join-game-button" type="button">Join</button>
+            </label>
+          </div>
+          <div class="connection-meta">
+            <span id="connection-status" aria-live="polite">Connect to the game server to begin.</span>
+            <span class="share-code" id="share-code" hidden></span>
+          </div>
+        </div>
+
+        <div class="board-wrap">
+          <div class="board" id="board" role="grid" aria-label="Tic tac toe board">
+            <button class="cell" type="button" role="gridcell" data-index="0" aria-label="Row 1, column 1, empty"></button>
+            <button class="cell" type="button" role="gridcell" data-index="1" aria-label="Row 1, column 2, empty"></button>
+            <button class="cell" type="button" role="gridcell" data-index="2" aria-label="Row 1, column 3, empty"></button>
+            <button class="cell" type="button" role="gridcell" data-index="3" aria-label="Row 2, column 1, empty"></button>
+            <button class="cell" type="button" role="gridcell" data-index="4" aria-label="Row 2, column 2, empty"></button>
+            <button class="cell" type="button" role="gridcell" data-index="5" aria-label="Row 2, column 3, empty"></button>
+            <button class="cell" type="button" role="gridcell" data-index="6" aria-label="Row 3, column 1, empty"></button>
+            <button class="cell" type="button" role="gridcell" data-index="7" aria-label="Row 3, column 2, empty"></button>
+            <button class="cell" type="button" role="gridcell" data-index="8" aria-label="Row 3, column 3, empty"></button>
+          </div>
+          <p class="board-caption"><span>3 × 3</span><span>TAKE TURNS TO CLAIM A LINE</span></p>
+        </div>
+
+        <div class="game-footer">
+          <span class="game-note"><span class="note-icon" aria-hidden="true">↗</span> First to three in a row wins</span>
+          <button class="restart-button" id="restart-button" type="button" title="Restart game">
+            <svg aria-hidden="true" viewBox="0 0 20 20" fill="none"><path d="M16.2 8A6.5 6.5 0 0 0 4.5 5.3L3 7"/><path d="M3 3.5V7h3.5M3.8 12A6.5 6.5 0 0 0 15.5 14.7L17 13"/><path d="M17 16.5V13h-3.5"/></svg>
+            <span>Restart game</span>
+          </button>
+        </div>
+      </section>
+
+      <footer class="page-footer"><span>GOOD GAMES ARE MADE TO BE SHARED.</span><span>NO. 001 <i></i> EST. TODAY</span></footer>
+    </main>
+  </div>
+
+  <dialog class="result-dialog" id="result-dialog" aria-labelledby="result-title" aria-describedby="result-description">
+    <div class="dialog-content">
+      <span class="dialog-kicker" id="result-kicker">THAT'S A LINE</span>
+      <div class="result-mark" id="result-mark" aria-hidden="true">X</div>
+      <h2 id="result-title">Winner: Alice</h2>
+      <p id="result-description">Nicely played. Ready for another round?</p>
+      <button class="play-again-button" id="play-again-button" type="button">Play again <span aria-hidden="true">↗</span></button>
+    </div>
+  </dialog>
+</body>
+</html>
