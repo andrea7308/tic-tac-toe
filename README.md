@@ -20,7 +20,7 @@ cmake --build build/server --target tic-tac-toe-server
 ./build/server/tic-tac-toe-server 0.0.0.0 8080 frontend
 ```
 
-Open `http://localhost:8080`, create a game, and share its join code with the other player. For players on different networks, deploy the server on a publicly reachable host behind HTTPS and use the same server for both clients. The current service stores sessions in memory, so games do not survive server restarts.
+Open `http://localhost:8080` and choose **Play on this device** for two people sharing one computer. Enter both names, then take turns clicking the board. To play from separate devices, use **Create game** and share the join code. The server must be publicly reachable behind HTTPS for players on different networks. Sessions are stored in memory and do not survive server restarts.
 
 See [frontend/API.md](frontend/API.md) for the HTTP contract and deployment boundaries.
 + Two players take alternate turns, identified by markers ‘X’ and ‘O’.

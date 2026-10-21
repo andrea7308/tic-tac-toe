@@ -46,6 +46,7 @@ json::value snapshotJson(const GameSnapshot& state) {
         {"winner", state.winnerSymbol.empty() ? json::value(nullptr) : json::value(std::move(winner))},
         {"players", json::object{{"X", state.playerX}, {"O", state.playerO}}},
         {"ready", state.ready},
+        {"localPassAndPlay", state.localPassAndPlay},
     };
 }
 
@@ -121,7 +122,7 @@ http::response<http::string_body> makeResponse(http::status status, unsigned ver
     http::response<http::string_body> response{status, version};
     response.set(http::field::server, "TicTacToeCpp");
     response.set(http::field::access_control_allow_origin, "*");
-    response.set(http::field::access_control_allow_methods, "GET, POST, OPTIONS");
+    response.set(http::field::access_control_allow_methods, "GET, POST, PATCH, OPTIONS");
     response.set(http::field::access_control_allow_headers, "Content-Type, Authorization");
     for (const auto& field : fields) response.set(field.first, field.second);
     response.body() = body;
@@ -152,6 +153,16 @@ http::response<http::string_body> routeRequest(const http::request<http::string_
             const auto body = json::parse(request.body()).as_object();
             return jsonResponse(http::status::created, request.version(), snapshotJson(games.createGame(optionalPlayerName(body))));
         }
+        if (path == "/api/games/local" && request.method() == http::verb::post) {
+            const auto body = json::parse(request.body()).as_object();
+            const auto players = body.if_contains("players");
+            if (!players || !players->is_object()) {
+                throw std::invalid_argument("Missing players object");
+            }
+            const auto& names = players->as_object();
+            return jsonResponse(http::status::created, request.version(), snapshotJson(games.createLocalGame(
+                requiredString(names, "X"), requiredString(names, "O"))));
+        }
         if (path == "/api/games/join" && request.method() == http::verb::post) {
             const auto body = json::parse(request.body()).as_object();
             return jsonResponse(http::status::ok, request.version(), snapshotJson(
@@ -167,6 +178,22 @@ http::response<http::string_body> routeRequest(const http::request<http::string_
             const auto token = bearerToken(request);
             if (slash == std::string::npos && request.method() == http::verb::get) {
                 return jsonResponse(http::status::ok, request.version(), snapshotJson(games.getState(gameId, token)));
+            }
+            if (slash != std::string::npos && remainder.substr(slash + 1) == "players" &&
+                request.method() == http::verb::patch) {
+                const auto body = json::parse(request.body()).as_object();
+                const auto playersValue = body.if_contains("players");
+                if (!playersValue || !playersValue->is_object()) {
+                    throw std::invalid_argument("Missing players object");
+                }
+                const auto& players = playersValue->as_object();
+                const auto* xName = players.if_contains("X");
+                const auto* oName = players.if_contains("O");
+                if (!xName || !xName->is_string() || !oName || !oName->is_string()) {
+                    throw std::invalid_argument("Player names must be strings");
+                }
+                return jsonResponse(http::status::ok, request.version(), snapshotJson(games.updateNames(
+                    gameId, token, std::string(xName->as_string()), std::string(oName->as_string()))));
             }
             if (slash != std::string::npos && request.method() == http::verb::post) {
                 const auto action = remainder.substr(slash + 1);

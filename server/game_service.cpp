@@ -97,6 +97,7 @@ GameSnapshot GameService::snapshot(const Session& session, const std::string& to
     result.playerX = session.playerX->getName();
     result.playerO = session.playerO->getName();
     result.ready = !session.oToken.empty();
+    result.localPassAndPlay = session.localPassAndPlay;
 
     const auto winner = session.game->getWinner();
     if (winner) {
@@ -117,6 +118,7 @@ GameSnapshot GameService::createGame(const std::string& playerName) {
     auto session = std::make_shared<Session>();
     session->id = makeRandomToken(24);
     session->xToken = makeRandomToken(48);
+    session->localPassAndPlay = false;
     session->playerX = std::make_shared<Player>(normalizeName(playerName, "Player X"), Symbol::X);
     session->playerO = std::make_shared<Player>("Waiting for player", Symbol::O);
     session->game = std::make_unique<Game>(session->playerX, session->playerO, 3);
@@ -127,6 +129,22 @@ GameSnapshot GameService::createGame(const std::string& playerName) {
     } while (joinCodes_.count(session->joinCode) != 0);
     sessions_.emplace(session->id, session);
     joinCodes_.emplace(session->joinCode, session->id);
+    std::lock_guard<std::mutex> sessionLock(session->mutex);
+    return snapshot(*session, session->xToken);
+}
+
+GameSnapshot GameService::createLocalGame(const std::string& playerXName, const std::string& playerOName) {
+    auto session = std::make_shared<Session>();
+    session->id = makeRandomToken(24);
+    session->xToken = makeRandomToken(48);
+    session->oToken = session->xToken;
+    session->localPassAndPlay = true;
+    session->playerX = std::make_shared<Player>(normalizeName(playerXName, "Player X"), Symbol::X);
+    session->playerO = std::make_shared<Player>(normalizeName(playerOName, "Player O"), Symbol::O);
+    session->game = std::make_unique<Game>(session->playerX, session->playerO, 3);
+
+    std::lock_guard<std::mutex> lock(sessionsMutex_);
+    sessions_.emplace(session->id, session);
     std::lock_guard<std::mutex> sessionLock(session->mutex);
     return snapshot(*session, session->xToken);
 }
@@ -142,6 +160,7 @@ GameSnapshot GameService::joinGame(const std::string& joinCode, const std::strin
 
     std::lock_guard<std::mutex> lock(session->mutex);
     if (!session->oToken.empty()) throw std::runtime_error("This game already has two players");
+    session->localPassAndPlay = false;
     session->oToken = makeRandomToken(48);
     session->playerO = std::make_shared<Player>(normalizeName(playerName, "Player O"), Symbol::O);
     session->game = std::make_unique<Game>(session->playerX, session->playerO, 3);
@@ -155,12 +174,26 @@ GameSnapshot GameService::getState(const std::string& gameId, const std::string&
     return snapshot(*session, playerToken);
 }
 
+GameSnapshot GameService::updateNames(const std::string& gameId, const std::string& playerToken,
+                                      const std::string& playerXName, const std::string& playerOName) {
+    auto session = findSession(gameId);
+    std::lock_guard<std::mutex> lock(session->mutex);
+    const auto role = authorize(*session, playerToken);
+    if (session->localPassAndPlay || role == "X") {
+        session->playerX->setName(normalizeName(playerXName, "Player X"));
+    }
+    if (session->localPassAndPlay || role == "O") {
+        session->playerO->setName(normalizeName(playerOName, "Player O"));
+    }
+    return snapshot(*session, playerToken);
+}
+
 GameSnapshot GameService::makeMove(const std::string& gameId, const std::string& playerToken, int row, int column) {
     auto session = findSession(gameId);
     std::lock_guard<std::mutex> lock(session->mutex);
     const auto role = authorize(*session, playerToken);
     if (session->oToken.empty()) throw std::runtime_error("Waiting for the second player to join");
-    if (symbolName(session->game->getCurrentPlayer()->getSymbol()) != role) {
+    if (!session->localPassAndPlay && symbolName(session->game->getCurrentPlayer()->getSymbol()) != role) {
         throw std::runtime_error("It is the other player's turn");
     }
     session->game->makeMove(row, column);

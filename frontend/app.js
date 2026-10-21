@@ -13,6 +13,7 @@ const resultKicker = document.querySelector('#result-kicker');
 const resultMark = document.querySelector('#result-mark');
 const playAgainButton = document.querySelector('#play-again-button');
 const createGameButton = document.querySelector('#create-game-button');
+const localGameButton = document.querySelector('#local-game-button');
 const joinGameButton = document.querySelector('#join-game-button');
 const joinCodeInput = document.querySelector('#join-code-input');
 const connectionStatus = document.querySelector('#connection-status');
@@ -28,6 +29,8 @@ const winningLines = [
 let gameState = null;
 let requestPending = false;
 let requestError = '';
+let nameUpdateTimer = null;
+let nameUpdatePending = false;
 
 function playerName(symbol) {
   const input = symbol === 'X' ? playerXInput : playerOInput;
@@ -86,6 +89,7 @@ function renderState() {
   if (!gameState) {
     cells.forEach((cell) => { cell.disabled = true; });
     restartButton.disabled = true;
+    localGameButton.disabled = requestPending;
     createGameButton.disabled = requestPending;
     joinGameButton.disabled = requestPending;
     return;
@@ -93,31 +97,42 @@ function renderState() {
   gameState.board.forEach((symbol, index) => {
     const cell = cells[index];
     cell.className = 'cell';
-    cell.replaceChildren();
     cell.disabled = requestPending || !gameState.ready || Boolean(symbol) || gameState.status !== 'in_progress';
     cell.setAttribute('aria-label', `Row ${Math.floor(index / 3) + 1}, column ${(index % 3) + 1}, ${symbol || 'empty'}`);
     if (symbol) {
       cell.classList.add(symbol === 'X' ? 'mark-x' : 'mark-o');
-      const mark = document.createElement('span');
-      mark.className = 'cell-mark';
-      mark.setAttribute('aria-hidden', 'true');
-      mark.textContent = symbol;
-      cell.append(mark);
+      const existingMark = cell.querySelector('.cell-mark');
+      if (!existingMark || existingMark.textContent !== symbol) {
+        const mark = document.createElement('span');
+        mark.className = 'cell-mark';
+        mark.setAttribute('aria-hidden', 'true');
+        mark.textContent = symbol;
+        cell.replaceChildren(mark);
+      }
+    } else if (cell.firstChild) {
+      cell.replaceChildren();
     }
   });
 
   if (gameState.players) {
-    playerXInput.value = gameState.players.X || playerXInput.value;
-    playerOInput.value = gameState.players.O || playerOInput.value;
+    if (document.activeElement !== playerXInput && !playerXInput.value) {
+      playerXInput.value = gameState.players.X || '';
+    }
+    if (document.activeElement !== playerOInput && !playerOInput.value && gameState.players.O !== 'Waiting for player') {
+      playerOInput.value = gameState.players.O || '';
+    }
   }
   restartButton.disabled = requestPending;
+  localGameButton.disabled = requestPending;
   createGameButton.disabled = requestPending;
   joinGameButton.disabled = requestPending;
   connectionStatus.textContent = gameState.ready
-    ? `Connected as Player ${gameState.localPlayer}. Game ${gameState.joinCode}.`
+    ? (gameState.localPassAndPlay
+      ? 'Pass and play on this device.'
+      : `Connected as Player ${gameState.localPlayer}. Game ${gameState.joinCode}.`)
     : `Game ${gameState.joinCode} is ready. Share the code with your opponent.`;
   shareCode.textContent = gameState.joinCode;
-  shareCode.hidden = !gameState.joinCode;
+  shareCode.hidden = !gameState.joinCode || gameState.localPassAndPlay;
   renderTurn();
   if (gameState.status === 'winner' || gameState.status === 'draw') renderResult();
 }
@@ -165,12 +180,18 @@ async function connectGame(action) {
   if (requestPending) return;
   requestPending = true;
   requestError = '';
-  connectionStatus.textContent = action === 'create' ? 'Creating game...' : 'Joining game...';
+  connectionStatus.textContent = action === 'local'
+    ? 'Starting local game...'
+    : action === 'create' ? 'Creating game...' : 'Joining game...';
   renderState();
   try {
-    gameState = action === 'create'
-      ? await gameApi.createGame(playerName('X'))
-      : await gameApi.joinGame(joinCodeInput.value.trim(), playerName('O'));
+    if (action === 'local') {
+      gameState = await gameApi.createLocalGame(currentPlayers());
+    } else if (action === 'create') {
+      gameState = await gameApi.createGame(playerName('X'));
+    } else {
+      gameState = await gameApi.joinGame(joinCodeInput.value.trim(), playerName('O'));
+    }
     if (resultDialog.open) resultDialog.close();
     joinCodeInput.value = '';
     renderState();
@@ -183,7 +204,7 @@ async function connectGame(action) {
 }
 
 async function refreshGameState() {
-  if (!gameState || requestPending) return;
+  if (!gameState || requestPending || nameUpdatePending) return;
   try {
     const latest = await gameApi.getState();
     if (latest) {
@@ -196,16 +217,34 @@ async function refreshGameState() {
   }
 }
 
+function scheduleNameUpdate() {
+  renderTurn();
+  if (!gameState || !gameApi.updateNames) return;
+  window.clearTimeout(nameUpdateTimer);
+  nameUpdateTimer = window.setTimeout(async () => {
+    nameUpdatePending = true;
+    try {
+      gameState = await gameApi.updateNames(currentPlayers());
+      renderState();
+    } catch (error) {
+      showRequestError(error);
+    } finally {
+      nameUpdatePending = false;
+    }
+  }, 350);
+}
+
 cells.forEach((cell, index) => cell.addEventListener('click', () => placeMark(index)));
 restartButton.addEventListener('click', restartGame);
 playAgainButton.addEventListener('click', restartGame);
+localGameButton.addEventListener('click', () => connectGame('local'));
 createGameButton.addEventListener('click', () => connectGame('create'));
 joinGameButton.addEventListener('click', () => connectGame('join'));
 joinCodeInput.addEventListener('keydown', (event) => {
   if (event.key === 'Enter') connectGame('join');
 });
-playerXInput.addEventListener('input', renderTurn);
-playerOInput.addEventListener('input', renderTurn);
+playerXInput.addEventListener('input', scheduleNameUpdate);
+playerOInput.addEventListener('input', scheduleNameUpdate);
 resultDialog.addEventListener('cancel', (event) => event.preventDefault());
 
 gameApi.getState()

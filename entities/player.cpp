@@ -12,6 +12,10 @@ const std::string& Player::getName() const {
     return name_;
 }
 
+void Player::setName(const std::string& name) {
+    name_ = name;
+}
+
 Symbol Player::getSymbol() const {
     return symbol_;
 }

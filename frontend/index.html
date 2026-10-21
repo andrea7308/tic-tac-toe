@@ -31,23 +31,24 @@
           <div class="players" aria-label="Players">
             <label class="player player-x" for="player-x">
               <span class="player-symbol" aria-hidden="true">X</span>
-              <span class="player-details"><span class="player-marker">PLAYER 01</span><input id="player-x" maxlength="20" value="Alice" aria-label="Player X name"></span>
+              <span class="player-details"><span class="player-marker">PLAYER 01</span><input id="player-x" maxlength="20" placeholder="Player X" aria-label="Player X name"></span>
             </label>
             <span class="versus" aria-hidden="true">VS</span>
             <label class="player player-o" for="player-o">
               <span class="player-symbol" aria-hidden="true">O</span>
-              <span class="player-details"><span class="player-marker">PLAYER 02</span><input id="player-o" maxlength="20" value="Bob" aria-label="Player O name"></span>
+              <span class="player-details"><span class="player-marker">PLAYER 02</span><input id="player-o" maxlength="20" placeholder="Player O" aria-label="Player O name"></span>
             </label>
           </div>
           <div class="turn-indicator" id="turn-indicator" aria-live="polite">
             <span class="turn-dot" aria-hidden="true"></span>
-            <span id="turn-text">Alice's turn</span>
+            <span id="turn-text">Player X's turn</span>
             <strong id="turn-symbol" aria-hidden="true">X</strong>
           </div>
         </div>
 
         <div class="connection-panel" aria-label="Game connection">
           <div class="connection-actions">
+            <button class="create-game-button" id="local-game-button" type="button">Play on this device</button>
             <button class="create-game-button" id="create-game-button" type="button">Create game</button>
             <label class="join-game-control" for="join-code-input">
               <input id="join-code-input" maxlength="8" placeholder="GAME CODE" aria-label="Game code">
@@ -92,7 +93,7 @@
     <div class="dialog-content">
       <span class="dialog-kicker" id="result-kicker">THAT'S A LINE</span>
       <div class="result-mark" id="result-mark" aria-hidden="true">X</div>
-      <h2 id="result-title">Winner: Alice</h2>
+      <h2 id="result-title">Winner</h2>
       <p id="result-description">Nicely played. Ready for another round?</p>
       <button class="play-again-button" id="play-again-button" type="button">Play again <span aria-hidden="true">↗</span></button>
     </div>

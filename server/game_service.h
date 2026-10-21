@@ -22,6 +22,7 @@ struct GameSnapshot {
     std::string playerX;
     std::string playerO;
     bool ready;
+    bool localPassAndPlay;
     std::vector<std::string> board;
 };
 
@@ -32,6 +33,7 @@ class GameService {
         std::string joinCode;
         std::string xToken;
         std::string oToken;
+        bool localPassAndPlay;
         std::shared_ptr<Player> playerX;
         std::shared_ptr<Player> playerO;
         std::unique_ptr<Game> game;
@@ -52,9 +54,12 @@ class GameService {
     static std::string authorize(const Session& session, const std::string& token);
 
 public:
+    GameSnapshot createLocalGame(const std::string& playerXName, const std::string& playerOName);
     GameSnapshot createGame(const std::string& playerName);
     GameSnapshot joinGame(const std::string& joinCode, const std::string& playerName);
     GameSnapshot getState(const std::string& gameId, const std::string& playerToken) const;
+    GameSnapshot updateNames(const std::string& gameId, const std::string& playerToken,
+                             const std::string& playerXName, const std::string& playerOName);
     GameSnapshot makeMove(const std::string& gameId, const std::string& playerToken, int row, int column);
     GameSnapshot restart(const std::string& gameId, const std::string& playerToken);
 };

@@ -18,13 +18,19 @@ Open `http://localhost:8080`. Set `TIC_TAC_TOE_API_BASE_URL` before `server-api.
 
 | Method | Path | Body | Purpose |
 | --- | --- | --- | --- |
+| `POST` | `/api/games/local` | `{ "players": { "X": "Casey", "O": "Jordan" } }` | Start server-backed pass-and-play on one device. |
 | `POST` | `/api/games` | `{ "name": "Alice" }` | Create a game; caller is Player X. |
 | `POST` | `/api/games/join` | `{ "joinCode": "ABC234", "name": "Bob" }` | Join an open game; caller is Player O. |
 | `GET` | `/api/games/{gameId}` | None | Read state. Requires `Authorization: Bearer {playerToken}`. |
+| `PATCH` | `/api/games/{gameId}/players` | `{ "players": { "X": "Casey", "O": "Jordan" } }` | Update player names; same-device sessions can update both names, online players can update their own. |
 | `POST` | `/api/games/{gameId}/moves` | `{ "row": 0, "column": 2 }` | Submit a zero-based move. Requires player token. |
 | `POST` | `/api/games/{gameId}/restart` | `{}` | Restart the game. Requires player token. |
 
 All successful routes return the state shape below. The create response additionally includes a six-character `joinCode` for the second player and a private `playerToken`. The join response contains the joining player's token. Keep the token private; the frontend stores it in local storage.
+
+The local pass-and-play response sets `localPassAndPlay` to `true`, includes both player names, and does not require a join code. The UI uses one private session token while the C++ `Game` object alternates X and O turns.
+
+The local pass-and-play response sets `localPassAndPlay` to `true`, has both named players, and does not require a join code. The UI uses one private session token while the C++ `Game` object continues alternating X and O turns.
 
 ```json
 {
@@ -37,7 +43,8 @@ All successful routes return the state shape below. The create response addition
   "status": "in_progress",
   "winner": null,
   "players": { "X": "Alice", "O": "Bob" },
-  "ready": false
+  "ready": false,
+  "localPassAndPlay": false
 }
 ```
 
